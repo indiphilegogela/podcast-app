@@ -15,11 +15,45 @@ const genreMap = {
 function App() {
   const [previews, setPreviews] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedShow, setSelectedShow] = useState(null); // full show object
-  const [selectedSeason, setSelectedSeason] = useState(null); // season object
+  const [selectedShow, setSelectedShow] = useState(null);
+  const [selectedSeason, setSelectedSeason] = useState(null);
   const [showLoading, setShowLoading] = useState(false);
+  const [playingEpisode, setPlayingEpisode] = useState(null);
 
-  // Fetch previews
+  // Favourites
+  const [favourites, setFavourites] = useState(() => {
+    const saved = localStorage.getItem('favourites');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  function addToFavourites(episode, showTitle, seasonTitle) {
+    const newFav = {
+      id: episode.id,
+      title: episode.title,
+      file: episode.file,
+      showTitle,
+      seasonTitle,
+      addedAt: new Date().toISOString(),
+    };
+    const updated = [...favourites, newFav];
+    setFavourites(updated);
+    localStorage.setItem('favourites', JSON.stringify(updated));
+  }
+
+  function removeFromFavourites(id) {
+    const updated = favourites.filter(fav => fav.id !== id);
+    setFavourites(updated);
+    localStorage.setItem('favourites', JSON.stringify(updated));
+  }
+
+  function isFavourite(id) {
+    return favourites.some(fav => fav.id === id);
+  }
+
+  function playEpisode(episode) {
+    setPlayingEpisode(episode);
+  }
+
   useEffect(() => {
     async function fetchPreviews() {
       try {
@@ -36,7 +70,6 @@ function App() {
     fetchPreviews();
   }, []);
 
-  // Fetch full show data by id
   async function fetchShow(id) {
     setShowLoading(true);
     try {
@@ -56,9 +89,6 @@ function App() {
     return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
   }
 
-  if (loading) return <div>Loading shows...</div>;
-
-  // Show episodes for a selected season
   if (selectedSeason) {
     return (
       <div style={{ padding: '1rem' }}>
@@ -68,14 +98,33 @@ function App() {
         <h3>Episodes:</h3>
         <ul>
           {selectedSeason.episodes.map(ep => (
-            <li key={ep.id}>{ep.title}</li>
+            <li key={ep.id} onClick={() => playEpisode(ep)} style={{ cursor: 'pointer', marginBottom: '0.5rem' }}>
+              {ep.title}
+            </li>
           ))}
         </ul>
+
+        {playingEpisode && (
+          <div style={{
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            backgroundColor: '#222',
+            color: '#fff',
+            padding: '0.5rem 1rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '1rem',
+          }}>
+            <audio src={playingEpisode.file} controls autoPlay style={{ flexGrow: 1 }} />
+            <div>{playingEpisode.title}</div>
+          </div>
+        )}
       </div>
     );
   }
 
-  // Show seasons for selected show
   if (selectedShow) {
     return (
       <div style={{ padding: '1rem' }}>
@@ -104,7 +153,8 @@ function App() {
     );
   }
 
-  // Default: show previews
+  if (loading) return <div>Loading shows...</div>;
+
   return (
     <div style={{ padding: '1rem' }}>
       <h1>Podcast Shows</h1>
@@ -119,56 +169,31 @@ function App() {
             <h2>{show.title}</h2>
             <p><strong>Seasons:</strong> {show.seasons}</p>
             <p><strong>Last updated:</strong> {formatDate(show.updated)}</p>
-            <p><strong>Genres:</strong> {show.genreIds.map(id => genreMap[id]).join(', ')}</p>
-            // Add this state along with others
-const [playingEpisode, setPlayingEpisode] = useState(null);
-
-// Handle episode click
-function playEpisode(episode) {
-  setPlayingEpisode(episode);
-}
-
-// Render the episode list with click handler:
-{selectedSeason && (
-  <ul>
-    {selectedSeason.episodes.map(ep => (
-      <li key={ep.id} onClick={() => playEpisode(ep)} style={{ cursor: 'pointer', marginBottom: '0.5rem' }}>
-        {ep.title}
-      </li>
-    ))}
-  </ul>
-)}
-
-// At the bottom of your component's return, add the audio player UI:
-
-{playingEpisode && (
-  <div style={{
-    position: 'fixed',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#222',
-    color: '#fff',
-    padding: '0.5rem 1rem',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '1rem',
-  }}>
-    <audio
-      src={playingEpisode.file}
-      controls
-      autoPlay
-      style={{ flexGrow: 1 }}
-    />
-    <div>{playingEpisode.title}</div>
-  </div>
-)}
+            <p><strong>Genres:</strong> {Array.isArray(show.genreIds) ? show.genreIds.map(id => genreMap[id]).join(', ') : 'Unknown'}</p>
           </div>
         ))}
       </div>
+
+      {/* 🎵 Audio Player */}
+      {playingEpisode && (
+        <div style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          backgroundColor: '#222',
+          color: '#fff',
+          padding: '0.5rem 1rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '1rem',
+        }}>
+          <audio src={playingEpisode.file} controls autoPlay style={{ flexGrow: 1 }} />
+          <div>{playingEpisode.title}</div>
+        </div>
+      )}
     </div>
   );
 }
 
 export default App;
-
