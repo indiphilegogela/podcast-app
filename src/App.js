@@ -222,7 +222,7 @@ return (
               <h2>{show.title}</h2>
               <p><strong>Seasons:</strong> {show.seasons}</p>
               <p><strong>Last updated:</strong> {formatDate(show.updated)}</p>
-              <p><strong>Genres:</strong> {show.genreIds.map(id => genreMap[id]).join(', ')}</p>
+             <p><strong>Genres:</strong> {(show.genreIds && show.genreIds.map(id => genreMap[id]).join(', ')) || 'No genres'}</p>
             </div>
           ))}
         </div>
@@ -253,7 +253,7 @@ return (
       </div>
     )}
   </div>
-);
-
+)
+}
 
 export default App;
